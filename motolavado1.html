@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Motolavado Route46 - Fase 1.95 Final</title>
+    
+    <!-- React y ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel para traducir JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script>
+        // Obligamos a Babel a usar el modo clásico de React para evitar errores de importación en el navegador
+        Babel.registerPreset('react-classic', {
+            presets: [
+                [Babel.availablePresets.react, { runtime: 'classic' }]
+            ]
+        });
+    </script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Estilos -->
+    <style>
+        body { -webkit-tap-highlight-color: transparent; user-select: none; }
+        input, select, textarea { user-select: text; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Tabla estilo Excel */
+        .excel-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; background: white; border-radius: 8px; overflow: hidden; }
+        .excel-table th { background-color: #f8fafc; color: #64748b; font-weight: 800; padding: 12px 8px; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; border-bottom: 2px solid #e2e8f0; text-align: right; }
+        .excel-table th:first-child { text-align: left; }
+        .excel-table td { padding: 12px 8px; border-bottom: 1px solid #f1f5f9; color: #334155; font-variant-numeric: tabular-nums; text-align: right; }
+        .excel-table td:first-child { text-align: left; font-weight: 600; }
+        .excel-table tr:last-child td { border-bottom: none; border-top: 2px solid #cbd5e1; font-weight: 800; font-size: 1rem; color: #0f172a; }
+        .excel-row:hover { background-color: #f8fafc; cursor: pointer; transition: background-color 0.2s; }
+        .text-income { color: #16a34a !important; font-weight: 700; } 
+        .text-expense { color: #dc2626 !important; font-weight: 700; }
+        
+        /* Toggle Switch */
+        .toggle-checkbox:checked { right: 0; border-color: #68D391; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #68D391; }
+    </style>
+</head>
+    <body class="bg-slate-100 text-slate-800 font-sans">
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="env,react-classic">
+        const { useState, useMemo, useEffect } = React;
+
+        const Icon = ({ name, className }) => {
+            const icons = {
+                Plus: <path d="M5 12h14M12 5v14" />,
+                DollarSign: <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />,
+                CheckCircle: <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4 12 14.01l-3-3" />,
+                Trash2: <path d="M3 6h18M19 6v14c0 1-2 2-2 2H7c0 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6" />,
+                Bike: <path d="M5.5 17a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm13 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM2 14.5A2.5 2.5 0 0 1 4.5 12h11a2.5 2.5 0 0 1 2.5 2.5M15 12l-3-6h-4l-3 6" />,
+                Search: <><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></>,
+                Wallet: <><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></>,
+                Clock: <><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></>,
+                ArrowRightCircle: <><circle cx="12" cy="12" r="10" /><path d="M8 12h8M12 16l4-4-4-4" /></>,
+                Users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>,
+                User: <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>,
+                ClipboardList: <><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M12 11h4" /><path d="M12 16h4" /><path d="M8 11h.01" /><path d="M8 16h.01" /></>,
+                X: <path d="M18 6 6 18M6 6l12 12" />,
+                Calendar: <><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></>,
+                RefreshCw: <><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></>,
+                Phone: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />,
+                PieChart: <><path d="M21.21 15.89A10 10 0 1 1 8 2.83" /><path d="M22 12A10 10 0 0 0 12 2v10z" /></>,
+                Pencil: <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />,
+                Ban: <><circle cx="12" cy="12" r="10" /><line x1="4.93" x2="19.07" y1="4.93" y2="19.07" /></>,
+                Monitor: <><rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" x2="16" y1="21" y2="21" /><line x1="12" x2="12" y1="17" y2="21" /></>,
+                BarChart: <><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></>,
+                TrendingDown: <><polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" /></>,
+                Eye: <><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></>,
+                EyeOff: <><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" x2="22" y1="2" y2="22" /></>,
+                ChevronLeft: <polyline points="15 18 9 12 15 6" />,
+                ChevronRight: <polyline points="9 18 15 12 9 6" />,
+                Settings: <><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></>,
+                Lock: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
+                Briefcase: <><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></>,
+                Check: <polyline points="20 6 9 17 4 12" />
+            };
+
+            return (
+                <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="24" height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    className={className}
+                >
+                    {icons[name] || null}
+                </svg>
+            );
+        };
+
+        function App() {
+            // -- UTILIDADES --
+            const getTodayDate = () => {
+                const d = new Date();
+                const offset = d.getTimezoneOffset() * 60000;
+                return (new Date(d - offset)).toISOString().slice(0, 10);
+            };
+
+            const isSameDay = (d1Str, d2Str) => {
+                if (!d1Str || !d2Str) return false;
+                const d1 = new Date(d1Str);
+                const d2 = new Date(d2Str);
+                const normD1 = d1Str.length === 10 ? new Date(d1Str + 'T00:00:00') : d1;
+                const normD2 = d2Str.length === 10 ? new Date(d2Str + 'T00:00:00') : d2;
+                return normD1.getFullYear() === normD2.getFullYear() && normD1.getMonth() === normD2.getMonth() && normD1.getDate() === normD2.getDate();
+            };
+
+            const isToday = (dateString) => isSameDay(dateString, new Date().toISOString());
+
+            const formatMoney = (amount) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
+            
+            const formatDate = (dateStr) => { 
+                if (!dateStr) return "-"; 
+                try {
+                    const d = new Date(dateStr); 
+                    const offset = d.getTimezoneOffset() * 60000; 
+                    const localDate = new Date(d.getTime() + offset); 
+                    return localDate.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' }); 
+                } catch(e) { return "-"; }
+            };
+
+            const getTimeAgo = (dateStr) => { const diff = Date.now() - new Date(dateStr).getTime(); const mins = Math.floor(diff / 60000); if (mins < 60) return `${mins} min`; const hours = Math.floor(mins / 60); return `${hours} h ${mins % 60} min`; };
+            const getDuration = (start, end) => { if (!start || !end) return "-"; const diff = new Date(end).getTime() - new Date(start).getTime(); const mins = Math.floor(diff / 60000); if (mins < 60) return `${mins}m`; const hours = Math.floor(mins / 60); return `${hours}h ${mins % 60}m`; };
+            
+            // LOGICA CORREGIDA DE TIEMPOS
+            const getWaitTime = (reg) => {
+                if (!reg.fechaIngreso) return "-";
+                const end = reg.terminado && reg.fechaTerminado ? reg.fechaTerminado : Date.now();
+                return getDuration(reg.fechaIngreso, end);
+            };
+
+            const getServiceTime = (reg) => { 
+                if (!reg.terminado) return "-"; 
+                const start = reg.fechaTerminado; 
+                const end = reg.entregado && reg.fechaFinServicio ? reg.fechaFinServicio : Date.now();
+                return getDuration(start, end); 
+            };
+            
+            const getDiasRestantes = (fechaFin) => { 
+                if (!fechaFin) return 0;
+                try {
+                    const fin = new Date(fechaFin); 
+                    const hoy = new Date(); 
+                    const diffTime = fin - hoy; 
+                    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                } catch (e) { return 0; }
+            };
+
+            // --- CONSTANTES ---
+            const preciosMensualidad = { 'Básica': 46000, 'Completa': 55000, 'Full': 70000 };
+            const pagoLavadorSuscripcion = { 'Básica': 5000, 'Completa': 6500, 'Full': 8000 };
+            
+            const getPaymentStyle = (metodo) => {
+                switch(metodo) {
+                    case 'Efectivo': return 'bg-green-100 text-green-700 border-green-200';
+                    case 'Nequi': return 'bg-orange-100 text-orange-700 border-orange-200';
+                    case 'Daviplata': return 'bg-purple-100 text-purple-700 border-purple-200';
+                    case 'Suscripción': return 'bg-blue-100 text-blue-700 border-blue-200';
+                    default: return 'bg-slate-100 text-slate-500 border-slate-200';
+                }
+            };
+
+            const washerColors = [
+                { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+                { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
+                { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
+                { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+                { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-200' },
+                { bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-200' },
+            ];
+            const getWasherColorStyle = (index) => washerColors[index % washerColors.length];
+
+            // --- ESTADOS ---
+            const [lavadores, setLavadores] = useState(() => JSON.parse(localStorage.getItem('motolavado_lavadores')) || ['Juan', 'Pedro', 'Carlos', 'Luis']);
+            const [registros, setRegistros] = useState(() => {
+                const saved = localStorage.getItem('motolavado_registros');
+                if (saved) { 
+                    try {
+                        const data = JSON.parse(saved);
+                        if (Array.isArray(data)) return data.map(r => ({...r, fechaIngreso: r.fechaIngreso || r.fecha, fechaTerminado: r.fechaTerminado || (r.terminado ? r.fecha : null), fechaPago: r.fechaPago || (r.pagado ? r.fecha : null), entregado: r.entregado || false, fechaFinServicio: r.fechaFinServicio || null }));
+                    } catch (e) { console.error("Error loading registros", e); }
+                }
+                return [];
+            });
+            const [mensualidades, setMensualidades] = useState(() => {
+                const saved = localStorage.getItem('motolavado_mensualidades');
+                try { 
+                    const data = saved ? JSON.parse(saved) : []; 
+                    return Array.isArray(data) ? data : [];
+                } catch (e) { return []; }
+            });
+            const [gastos, setGastos] = useState(() => {
+                const saved = localStorage.getItem('motolavado_gastos');
+                try { return saved ? JSON.parse(saved) : []; } catch(e) { return []; }
+            });
+            const [descansos, setDescansos] = useState(() => {
+                const saved = localStorage.getItem('motolavado_descansos');
+                try { return saved ? JSON.parse(saved) : {}; } catch(e) { return {}; }
+            });
+            
+            // ADMIN
+            const [pagoAdmin, setPagoAdmin] = useState(() => {
+                const saved = localStorage.getItem('motolavado_pago_admin');
+                const today = getTodayDate();
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        if (parsed.fecha === today) return parsed;
+                    } catch(e) {}
+                }
+                const d = new Date();
+                const day = d.getDay();
+                const isWeekend = day === 0 || day === 6;
+                return { fecha: today, estado: 'N/A', valor: isWeekend ? 75000 : 65000 };
+            });
+
+            // HISTORIAL PAGO ADMIN
+            const [adminPaymentsHistory, setAdminPaymentsHistory] = useState(() => {
+                const saved = localStorage.getItem('motolavado_admin_payments_history');
+                try { return saved ? JSON.parse(saved) : []; } catch (e) { return []; }
+            });
+            
+            // ESTADO PAGO ADMIN HOY (VISUAL)
+            const [pagoAdminToday, setPagoAdminToday] = useState(() => {
+                const today = getTodayDate();
+                const d = new Date();
+                const day = d.getDay();
+                const isWeekend = day === 0 || day === 6;
+                const defaultVal = isWeekend ? 75000 : 65000;
+                return { valor: defaultVal, estado: 'N/A' };
+            });
+
+            useEffect(() => {
+                const today = getTodayDate();
+                const existing = adminPaymentsHistory.find(p => p.date === today);
+                if (existing) {
+                    setPagoAdminToday({ valor: existing.valor, estado: existing.paid ? 'Sí' : 'No' });
+                }
+            }, []);
+
+            const [editAdminPayment, setEditAdminPayment] = useState(false);
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [adminTab, setAdminTab] = useState('diario');
+            const [reportDate, setReportDate] = useState(getTodayDate());
+            const [showSettings, setShowSettings] = useState(false);
+            const [pinInput, setPinInput] = useState(''); 
+            const [modalObservacionId, setModalObservacionId] = useState(null); 
+            const [tempObservacion, setTempObservacion] = useState(''); 
+            const [modalDetailData, setModalDetailData] = useState(null); 
+            const [confirmarTerminarId, setConfirmarTerminarId] = useState(null);
+            const [modalEditPrecio, setModalEditPrecio] = useState(null); 
+            const [modalEditMetodo, setModalEditMetodo] = useState(null); 
+
+            // PERSISTENCIA
+            useEffect(() => { localStorage.setItem('motolavado_lavadores', JSON.stringify(lavadores)); }, [lavadores]);
+            useEffect(() => { localStorage.setItem('motolavado_registros', JSON.stringify(registros)); }, [registros]);
+            useEffect(() => { localStorage.setItem('motolavado_mensualidades', JSON.stringify(mensualidades)); }, [mensualidades]);
+            useEffect(() => { localStorage.setItem('motolavado_gastos', JSON.stringify(gastos)); }, [gastos]);
+            useEffect(() => { localStorage.setItem('motolavado_descansos', JSON.stringify(descansos)); }, [descansos]);
+            useEffect(() => { localStorage.setItem('motolavado_pago_admin', JSON.stringify(pagoAdmin)); }, [pagoAdmin]);
+            useEffect(() => { localStorage.setItem('motolavado_admin_payments_history', JSON.stringify(adminPaymentsHistory)); }, [adminPaymentsHistory]);
+
+            const [form, setForm] = useState({ placa: '', valor: '', metodo: 'DEBE', pagado: false, observaciones: '' });
+            const [formMensualidad, setFormMensualidad] = useState({ nombre: '', placa: '', telefono: '', moto: '', tipo: 'Básica', fechaInicio: getTodayDate(), valor: 46000, metodoPago: 'Efectivo' });
+            const [formGasto, setFormGasto] = useState({ descripcion: '', valor: '' });
+
+            const [vistaActual, setVistaActual] = useState('proceso');
+            const [busqueda, setBusqueda] = useState('');
+            const [busquedaMensualidad, setBusquedaMensualidad] = useState('');
+            const [now, setNow] = useState(Date.now());
+            const [modalPagoId, setModalPagoId] = useState(null);
+            const [modalLavadorId, setModalLavadorId] = useState(null);
+            const [modalDetalleLavador, setModalDetalleLavador] = useState(null);
+            const [editMensualidad, setEditMensualidad] = useState(null);
+            const [errorMsg, setErrorMsg] = useState('');
+            const [confirmarAnularId, setConfirmarAnularId] = useState(null);
+            const [confirmarEliminarGastoId, setConfirmarEliminarGastoId] = useState(null); 
+            const [showCaja, setShowCaja] = useState(false);
+            const [showPinModal, setShowPinModal] = useState(false); 
+            
+            const [calendarDate, setCalendarDate] = useState(new Date());
+            const [selectedDay, setSelectedDay] = useState(null);
+
+            useEffect(() => { const interval = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(interval); }, []);
+
+            const toggleAdminMode = () => {
+                if (isAdmin) {
+                    setIsAdmin(false);
+                    setVistaActual('proceso');
+                    setShowSettings(false);
+                } else {
+                    setShowPinModal(true);
+                    setPinInput('');
+                    setShowSettings(false);
+                }
+            };
+
+            const verifyPin = () => {
+                if (pinInput === "1234") {
+                    setIsAdmin(true);
+                    setShowPinModal(false);
+                } else {
+                    alert("PIN Incorrecto");
+                    setPinInput('');
+                }
+            };
+
+            // --- LÓGICA DE NEGOCIO ---
+            const handleChange = (e) => { 
+                const { name, value, type, checked } = e.target; 
+                let finalValue = type === 'checkbox' ? checked : value;
+                if (name === 'placa') { finalValue = value.toUpperCase().replace(/\s/g, ''); }
+                setForm(prev => ({ ...prev, [name]: finalValue })); 
+            };
+            
+            const handleChangeLavador = (index, value) => { const nuevosLavadores = [...lavadores]; nuevosLavadores[index] = value; setLavadores(nuevosLavadores); };
+            
+            const handleAdd = (e) => {
+                e.preventDefault(); if (!form.placa || !form.valor) return;
+                
+                const esPagado = form.metodo !== 'DEBE';
+                const fechaPago = esPagado ? new Date().toISOString() : null;
+
+                const nuevoRegistro = { 
+                    id: Date.now(), 
+                    placa: form.placa.toUpperCase(), 
+                    valor: Number(form.valor), 
+                    metodo: esPagado ? form.metodo : 'Efectivo',
+                    pagado: esPagado, 
+                    terminado: false, 
+                    entregado: false, 
+                    lavador: null, 
+                    eliminado: false, 
+                    fecha: new Date().toISOString(), 
+                    fechaIngreso: new Date().toISOString(), 
+                    fechaTerminado: null, 
+                    fechaPago: fechaPago, 
+                    fechaFinServicio: null, 
+                    observaciones: form.observaciones 
+                };
+                setRegistros([...registros, nuevoRegistro]);
+                setForm({ placa: '', valor: '', metodo: 'DEBE', pagado: false, observaciones: '' });
+                setVistaActual('proceso');
+            };
+
+            const handleAddGasto = (e) => {
+                e.preventDefault(); if (!formGasto.descripcion || !formGasto.valor) return;
+                const gastosHoy = gastos.filter(g => isToday(g.fecha));
+                if (gastosHoy.length >= 5) { alert('Solo se permiten máximo 5 gastos por día.'); return; }
+                const nuevoGasto = { id: Date.now(), descripcion: formGasto.descripcion, valor: Number(formGasto.valor), fecha: new Date().toISOString() };
+                setGastos([...gastos, nuevoGasto]); setFormGasto({ descripcion: '', valor: '' });
+            };
+
+            const handleDeleteGasto = (id) => { setConfirmarEliminarGastoId(id); };
+            const confirmarEliminacionGasto = () => { if (confirmarEliminarGastoId) { setGastos(gastos.filter(g => g.id !== confirmarEliminarGastoId)); setConfirmarEliminarGastoId(null); } };
+            
+            const handleAddMensualidad = (e) => {
+                e.preventDefault();
+                if (!formMensualidad.nombre || !formMensualidad.placa || !formMensualidad.fechaInicio) {
+                    alert("Por favor complete nombre, placa y fecha.");
+                    return;
+                }
+                const placaLimpia = formMensualidad.placa.toUpperCase().replace(/\s/g, '');
+                const inicio = new Date(formMensualidad.fechaInicio + 'T12:00:00');
+                const fin = new Date(inicio); fin.setDate(fin.getDate() + 30);
+                const nueva = { 
+                    id: Date.now(), 
+                    ...formMensualidad, 
+                    placa: placaLimpia, 
+                    fechaCreacion: new Date().toISOString(), 
+                    fechaInicio: inicio.toISOString(), 
+                    fechaFin: fin.toISOString(), 
+                    activo: true 
+                };
+                setMensualidades([nueva, ...mensualidades]);
+                setFormMensualidad({ nombre: '', placa: '', telefono: '', moto: '', tipo: 'Básica', fechaInicio: getTodayDate(), valor: 46000, metodoPago: 'Efectivo' });
+            };
+
+            const startEditMensualidad = (cliente) => { const fechaInput = new Date(cliente.fechaInicio).toISOString().slice(0, 10); setEditMensualidad({ ...cliente, fechaInicioInput: fechaInput }); };
+            const handleSaveEditMensualidad = () => {
+                if (!editMensualidad.nombre || !editMensualidad.placa) return;
+                const placaLimpia = editMensualidad.placa.toUpperCase().replace(/\s/g, '');
+                const fechaInicio = new Date(editMensualidad.fechaInicioInput + 'T12:00:00'); const fechaFin = new Date(fechaInicio); fechaFin.setDate(fechaFin.getDate() + 30);
+                setMensualidades(mensualidades.map(m => m.id === editMensualidad.id ? { ...editMensualidad, placa: placaLimpia, fechaInicio: fechaInicio.toISOString(), fechaFin: fechaFin.toISOString() } : m));
+                setEditMensualidad(null);
+            };
+            const handleRenovarMensualidad = (id) => { if(window.confirm('¿Renovar mensualidad?')) { const fc = new Date().toISOString(); const fi = new Date(); const ff = new Date(); ff.setDate(ff.getDate() + 30); setMensualidades(mensualidades.map(m => m.id === id ? { ...m, fechaCreacion: fc, fechaInicio: fi.toISOString(), fechaFin: ff.toISOString(), activo: true } : m)); } };
+            const handleDeleteMensualidad = (id) => { if(window.confirm('¿Eliminar?')) { setMensualidades(mensualidades.filter(m => m.id !== id)); } };
+
+            const iniciarFinalizacion = (id) => setModalLavadorId(id);
+            // AL PASAR A LAVADO: fechaTerminado marca el INICIO del lavado (fin de la espera)
+            const confirmarFinalizacion = (nombreLavador) => { if (modalLavadorId) { setRegistros(registros.map(reg => { if (reg.id !== modalLavadorId) return reg; const nowISO = new Date().toISOString(); return { ...reg, terminado: true, lavador: nombreLavador, fechaTerminado: nowISO }; })); setModalLavadorId(null); } };
+            const handleClickPago = (reg) => { if (reg.pagado) { if(window.confirm('¿Marcar como pendiente?')) { setRegistros(registros.map(r => r.id === reg.id ? { ...r, pagado: false, fechaPago: null } : r)); } } else { setErrorMsg(''); setModalPagoId(reg.id); } };
+            const confirmarPago = (metodo) => { const r = registros.find(x => x.id === modalPagoId); if (metodo === 'Suscripción') { if (r.valor !== 0) { setErrorMsg('Valor debe ser $0'); return; } if (!mensualidades.some(m => m.placa === r.placa)) { setErrorMsg('Placa no registrada'); return; } } else { if (r.valor === 0) { setErrorMsg('Valor $0. Use Suscripción.'); return; } } if (modalPagoId) { setRegistros(registros.map(x => x.id === modalPagoId ? { ...x, pagado: true, metodo, fechaPago: new Date().toISOString() } : x)); setModalPagoId(null); setErrorMsg(''); } };
+            const solicitarAnulacion = (id) => setConfirmarAnularId(id);
+            const confirmarAnulacion = () => { if (confirmarAnularId) { setRegistros(registros.map(r => r.id === confirmarAnularId ? { ...r, eliminado: true, valor: 0, pagado: false, metodo: 'ANULADO' } : r)); setConfirmarAnularId(null); } };
+            const deleteRegistro = (id) => solicitarAnulacion(id);
+            const hardDeleteRegistro = (id) => { if(window.confirm('¿Eliminar permanentemente este registro anulado?')) { setRegistros(registros.filter(r => r.id !== id)); } };
+
+            const openObservacionModal = (reg) => { setModalObservacionId(reg.id); setTempObservacion(reg.observaciones || ''); };
+            const saveObservacion = () => { if (modalObservacionId) { setRegistros(registros.map(r => r.id === modalObservacionId ? { ...r, observaciones: tempObservacion } : r)); setModalObservacionId(null); } };
+
+            const validateAndSolicitFinish = (reg) => {
+                if (reg.pagado) { setConfirmarTerminarId(reg.id); return; }
+                if (reg.valor === 0) {
+                    const sub = mensualidades.find(m => m.placa === reg.placa);
+                    if (sub) {
+                        const dias = getDiasRestantes(sub.fechaFin);
+                        if (dias >= 0) { setConfirmarTerminarId(reg.id); } else { alert(`La mensualidad de ${reg.placa} está VENCIDA hace ${Math.abs(dias)} días.`); }
+                    } else { alert("La placa no registra suscripción activa. Por favor verificar mensualidad."); }
+                    return;
+                }
+                alert("Debe registrar el pago antes de terminar el servicio (botón NO PAGO).");
+            };
+
+            const confirmarTerminar = () => {
+                if (confirmarTerminarId) {
+                     const reg = registros.find(r => r.id === confirmarTerminarId);
+                     const nowISO = new Date().toISOString();
+                     let updates = { entregado: true, fechaFinServicio: nowISO }; 
+                     
+                     if (!reg.pagado && reg.valor === 0) {
+                        updates.pagado = true;
+                        updates.metodo = 'Suscripción';
+                        updates.fechaPago = nowISO;
+                     }
+
+                     setRegistros(registros.map(r => r.id === confirmarTerminarId ? { ...r, ...updates } : r));
+                     setConfirmarTerminarId(null);
+                }
+            }
+
+            const openEditPrecio = (reg) => setModalEditPrecio({ id: reg.id, valor: reg.valor });
+            const savePrecio = () => {
+                if (modalEditPrecio) {
+                    setRegistros(registros.map(r => r.id === modalEditPrecio.id ? { ...r, valor: Number(modalEditPrecio.valor) } : r));
+                    setModalEditPrecio(null);
+                }
+            };
+
+            const openEditMetodo = (reg) => setModalEditMetodo({ id: reg.id });
+            const saveMetodo = (nuevoMetodo) => {
+                if (modalEditMetodo) {
+                    setRegistros(registros.map(r => r.id === modalEditMetodo.id ? { ...r, metodo: nuevoMetodo } : r));
+                    setModalEditMetodo(null);
+                }
+            };
+
+            const handleUpdateAdminPayment = () => {
+                const today = getTodayDate();
+                const newHistory = [...adminPaymentsHistory];
+                const index = newHistory.findIndex(p => p.date === today);
+                const newEntry = { date: today, valor: pagoAdminToday.valor, paid: pagoAdminToday.estado === 'Sí' };
+                if (index >= 0) { newHistory[index] = newEntry; } else { newHistory.push(newEntry); }
+                setAdminPaymentsHistory(newHistory);
+                setEditAdminPayment(false);
+            };
+
+            const getDaysInMonth = (date) => { const year = date.getFullYear(); const month = date.getMonth(); const days = new Date(year, month + 1, 0).getDate(); const firstDay = new Date(year, month, 1).getDay(); const startOffset = firstDay === 0 ? 6 : firstDay - 1; const arr = []; for(let i=0; i<startOffset; i++) arr.push(null); for(let i=1; i<=days; i++) arr.push(new Date(year, month, i)); return arr; };
+            const handleDayClick = (date) => { if(!date) return; const dow = date.getDay(); if(dow===0 || dow===6) { alert('No fines de semana'); return; } const y = date.getFullYear(); const m = String(date.getMonth()+1).padStart(2,'0'), d = String(date.getDate()).padStart(2,'0'); setSelectedDay(`${y}-${m}-${d}`); };
+            const handleAssignDescanso = (nombre) => { if(selectedDay) { setDescansos(prev => { const n = {...prev}; if(nombre) n[selectedDay] = nombre; else delete n[selectedDay]; return n; }); setSelectedDay(null); } };
+
+            const resumen = useMemo(() => {
+                const activos = registros.filter(r => !r.eliminado);
+                return {
+                    enProceso: activos.filter(r => !r.terminado).length,
+                    finalizadas: activos.filter(r => r.terminado && !r.entregado).length, // Solo muestra las NO entregadas en el contador de "Listas"
+                    dineroRecibido: activos.filter(r => r.pagado).reduce((a, c) => a + c.valor, 0),
+                    dineroPendiente: activos.filter(r => r.terminado && !r.pagado).reduce((a, c) => a + c.valor, 0)
+                };
+            }, [registros]);
+
+            const statsLavadores = useMemo(() => {
+                const registrosHoy = registros.filter(r => isToday(r.fechaIngreso) && !r.eliminado);
+                return lavadores.map(nombre => {
+                    const servicios = registrosHoy.filter(r => r.terminado && r.lavador === nombre);
+                    const cantidad = servicios.length;
+                    let totalProduccion = 0, totalPago = 0, pagoPorcentaje = 0, pagoFijo = 0;
+                    servicios.forEach(r => {
+                        totalProduccion += r.valor;
+                        if (r.metodo === 'Suscripción') { const sub = mensualidades.find(m => m.placa === r.placa); const t = sub ? sub.tipo : 'Básica'; const v = pagoLavadorSuscripcion[t] || 5000; pagoFijo += v; totalPago += v; } 
+                        else { const com = r.valor * 0.40; pagoPorcentaje += com; totalPago += com; }
+                    });
+                    return { nombre, cantidad, total: totalProduccion, pago: totalPago, pagoPorcentaje, pagoFijo, listaServicios: servicios };
+                }).sort((a, b) => b.pago - a.pago);
+            }, [registros, lavadores, mensualidades]);
+
+            const statsCierre = useMemo(() => {
+                const hoy = registros.filter(r => isToday(r.fechaIngreso) && !r.eliminado);
+                const terminados = hoy.filter(r => r.terminado);
+                const pagados = hoy.filter(r => r.pagado);
+                const recaudoLavados = pagados.reduce((acc, curr) => acc + curr.valor, 0);
+                const suscripcionesHoy = mensualidades.filter(m => isToday(m.fechaCreacion || m.fechaInicio));
+                const recaudoSuscripciones = suscripcionesHoy.reduce((acc, curr) => acc + (curr.valor || 0), 0);
+                const totalProduccion = terminados.reduce((acc, curr) => acc + curr.valor, 0) + recaudoSuscripciones;
+                let totalNomina = 0;
+                terminados.forEach(r => {
+                     if (r.metodo === 'Suscripción') {
+                        const sub = mensualidades.find(m => m.placa === r.placa);
+                        const tipo = sub ? sub.tipo : 'Básica';
+                        totalNomina += (pagoLavadorSuscripcion[tipo] || 5000);
+                     } else { totalNomina += r.valor * 0.40; }
+                });
+                const gastosHoy = gastos.filter(g => isToday(g.fecha));
+                const totalGastos = gastosHoy.reduce((acc, curr) => acc + curr.valor, 0);
+                const totalRecaudo = recaudoLavados + recaudoSuscripciones;
+                
+                const todayStr = getTodayDate();
+                const adminEntry = adminPaymentsHistory.find(p => p.date === todayStr);
+                const pagoAdminValue = (adminEntry && adminEntry.paid) ? adminEntry.valor : 0;
+                
+                const ganancia = totalRecaudo - totalNomina - totalGastos - pagoAdminValue;
+                const metodos = { 'Efectivo': 0, 'Nequi': 0, 'Daviplata': 0 };
+                pagados.forEach(r => {
+                    if (metodos[r.metodo] !== undefined) metodos[r.metodo] += r.valor;
+                    else if (r.metodo !== 'Suscripción') metodos['Otros'] = (metodos['Otros'] || 0) + r.valor;
+                });
+                suscripcionesHoy.forEach(m => {
+                    const met = m.metodoPago || 'Efectivo';
+                    if (metodos[met] !== undefined) metodos[met] += (m.valor || 0);
+                    else metodos['Efectivo'] += (m.valor || 0);
+                });
+                return { totalProduccion, totalNomina, totalRecaudo, gananciaDia: ganancia, metodos, recaudoSuscripciones, cantidadMotos: terminados.length, totalGastos, gastosHoy, pagoAdminValue };
+            }, [registros, mensualidades, gastos, adminPaymentsHistory]);
+
+            const registrosFiltrados = registros.filter(reg => {
+                if (['equipo', 'resumen', 'mensualidades', 'cierre', 'cliente', 'gastos'].includes(vistaActual)) return false;
+                
+                if (reg.eliminado && !isToday(reg.fechaIngreso)) return false;
+
+                if (vistaActual === 'proceso') return !reg.terminado && reg.placa.includes(busqueda.toUpperCase());
+                
+                if (vistaActual === 'finalizados') return reg.terminado && !reg.entregado && reg.placa.includes(busqueda.toUpperCase());
+                
+                return false;
+            }).sort((a, b) => vistaActual === 'proceso' ? new Date(a.fecha) - new Date(b.fecha) : new Date(b.fecha) - new Date(a.fecha));
+
+            const getStatsForRange = (start, end) => {
+                const d1 = new Date(start); d1.setHours(0,0,0,0);
+                const d2 = new Date(end); d2.setHours(23,59,59,999);
+                
+                const recs = registros.filter(r => !r.eliminado && new Date(r.fechaIngreso) >= d1 && new Date(r.fechaIngreso) <= d2);
+                const subs = mensualidades.filter(m => new Date(m.fechaCreacion || m.fechaInicio) >= d1 && new Date(m.fechaCreacion || m.fechaInicio) <= d2);
+                const exps = gastos.filter(g => new Date(g.fecha) >= d1 && new Date(g.fecha) <= d2);
+                const admins = adminPaymentsHistory.filter(p => new Date(p.date) >= d1 && new Date(p.date) <= d2 && p.paid);
+
+                // Sales
+                const washIncome = recs.filter(r => r.pagado).reduce((a,c) => a + c.valor, 0); 
+                const subIncome = subs.reduce((a,c) => a + (c.valor || 0), 0); 
+                
+                const totalIncome = washIncome + subIncome;
+                const totalSales = recs.filter(r => r.terminado).reduce((a,c) => a + c.valor, 0) + subIncome; // Venta bruta total
+                
+                const totalExpenses = exps.reduce((a,c) => a + c.valor, 0);
+                const totalAdminPay = admins.reduce((a,c) => a + c.valor, 0);
+                
+                // Detalles de Nómina
+                let payrollMap = {};
+                let totalPayroll = 0;
+                recs.filter(r => r.terminado).forEach(r => {
+                    let pago = 0;
+                    if(r.metodo === 'Suscripción') {
+                        const s = mensualidades.find(m => m.placa === r.placa);
+                        const t = s ? s.tipo : 'Básica';
+                        pago = (pagoLavadorSuscripcion[t] || 5000);
+                    } else { pago = r.valor * 0.40; }
+                    
+                    if (!payrollMap[r.lavador]) payrollMap[r.lavador] = 0;
+                    payrollMap[r.lavador] += pago;
+                    totalPayroll += pago;
+                });
+                
+                const payrollDetails = Object.entries(payrollMap).map(([name, val]) => ({ desc: name, valor: val }));
+
+                // Arrays para detalles
+                const washDetails = recs.filter(r => r.pagado).map(r => ({ desc: `${r.placa} (${r.metodo})`, valor: r.valor, metodo: r.metodo }));
+                const subDetails = subs.map(s => ({ desc: `${s.placa} - ${s.nombre}`, valor: s.valor, metodo: s.metodoPago }));
+                const expenseDetails = exps.map(e => ({ desc: e.descripcion, valor: e.valor }));
+                const adminDetails = admins.map(a => ({ desc: formatDate(a.date), valor: a.valor }));
+
+                const netProfit = totalIncome - totalExpenses - totalPayroll - totalAdminPay;
+
+                return { 
+                    totalIncome, 
+                    washIncome, 
+                    subIncome, 
+                    totalExpenses, 
+                    totalPayroll, 
+                    totalAdminPay, 
+                    netProfit, 
+                    count: recs.filter(r => r.terminado).length, 
+                    subsCount: subs.length,
+                    totalSales,
+                    // Listas para modal
+                    washDetails,
+                    subDetails,
+                    payrollDetails,
+                    expenseDetails,
+                    adminDetails
+                };
+            };
+
+            const adminStats = useMemo(() => {
+                if(!isAdmin) return null;
+                const d = new Date(reportDate);
+                let start, end;
+                if(adminTab === 'diario') { start = end = d.toISOString().slice(0,10); }
+                else if(adminTab === 'semanal') { const day = d.getDay() || 7; if(day !== 1) d.setHours(-24 * (day - 1)); start = d.toISOString().slice(0,10); const e = new Date(d); e.setDate(d.getDate()+6); end = e.toISOString().slice(0,10); }
+                else { const y = d.getFullYear(), m = d.getMonth(); start = new Date(y, m, 1).toISOString().slice(0,10); end = new Date(y, m + 1, 0).toISOString().slice(0,10); }
+                return getStatsForRange(start, end);
+            }, [isAdmin, adminTab, reportDate, registros, mensualidades, gastos, adminPaymentsHistory]);
+
+            const openDetailModal = (title, items) => {
+                setModalDetailData({ title, items });
+            };
+
+            // VISTAS
+            if (isAdmin) {
+                return (
+                    <div className="min-h-screen bg-slate-900 text-white p-4 font-sans">
+                        <header className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4"><h1 className="text-xl font-bold text-blue-400 flex items-center gap-2"><Icon name="Lock" className="w-5 h-5" /> Admin Panel</h1><button onClick={toggleAdminMode} className="text-xs bg-slate-800 px-3 py-1 rounded-lg border border-slate-600 hover:bg-slate-700">Salir</button></header>
+                        <div className="flex gap-2 mb-6 bg-slate-800 p-1 rounded-xl">{['diario', 'semanal', 'mensual'].map(t => (<button key={t} onClick={() => setAdminTab(t)} className={`flex-1 py-2 rounded-lg text-xs font-bold capitalize ${adminTab === t ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>{t}</button>))}</div>
+                        <div className="mb-6 flex justify-center"><input type={adminTab === 'mensual' ? 'month' : 'date'} value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="bg-slate-800 text-white border border-slate-600 rounded-lg px-4 py-2 text-sm font-bold text-center" /></div>
+                        
+                        {adminStats && (
+                            <div className="bg-white rounded-xl shadow-lg overflow-hidden text-slate-800">
+                                <table className="excel-table">
+                                    <thead><tr><th>Concepto</th><th>Detalles</th><th className="text-right text-green-700">Entrada (+)</th><th className="text-right text-red-700">Salida (-)</th><th className="text-right">Neto</th></tr></thead>
+                                    <tbody>
+                                        <tr className="excel-row" onClick={() => openDetailModal('Ingresos Lavados', adminStats.washDetails)}>
+                                            <td>Lavados</td><td className="text-xs text-slate-500">{adminStats.count} motos</td><td className="text-right font-medium text-income">{formatMoney(adminStats.washIncome)}</td><td className="text-right">-</td><td className="text-right font-bold">{formatMoney(adminStats.washIncome)}</td>
+                                        </tr>
+                                        <tr className="excel-row" onClick={() => openDetailModal('Ingresos Suscripciones', adminStats.subDetails)}>
+                                            <td>Suscripciones</td><td className="text-xs text-slate-500">{adminStats.subsCount} nuevas</td><td className="text-right font-medium text-income">{formatMoney(adminStats.subIncome)}</td><td className="text-right">-</td><td className="text-right font-bold">{formatMoney(adminStats.subIncome)}</td>
+                                        </tr>
+                                        <tr className="excel-row" onClick={() => openDetailModal('Nómina Lavadores', adminStats.payrollDetails)}>
+                                            <td>Nómina</td><td className="text-xs text-slate-500">Pago personal</td><td className="text-right">-</td><td className="text-right font-medium text-expense">{formatMoney(adminStats.totalPayroll)}</td><td className="text-right font-bold text-red-500">-{formatMoney(adminStats.totalPayroll)}</td>
+                                        </tr>
+                                        <tr className="excel-row" onClick={() => openDetailModal('Pagos Administrador', adminStats.adminDetails)}>
+                                            <td>Pago Admin</td><td className="text-xs text-slate-500">Turnos</td><td className="text-right">-</td><td className="text-right font-medium text-expense">{formatMoney(adminStats.totalAdminPay)}</td><td className="text-right font-bold text-red-500">-{formatMoney(adminStats.totalAdminPay)}</td>
+                                        </tr>
+                                        <tr className="excel-row" onClick={() => openDetailModal('Gastos Operativos', adminStats.expenseDetails)}>
+                                            <td>Gastos Op.</td><td className="text-xs text-slate-500">Insumos/Varios</td><td className="text-right">-</td><td className="text-right font-medium text-expense">{formatMoney(adminStats.totalExpenses)}</td><td className="text-right font-bold text-red-500">-{formatMoney(adminStats.totalExpenses)}</td>
+                                        </tr>
+                                        <tr className="bg-slate-50"><td colSpan="4" className="text-right uppercase text-xs tracking-wider pt-4">Utilidad Neta</td><td className={`text-right text-lg pt-4 font-bold ${adminStats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatMoney(adminStats.netProfit)}</td></tr>
+                                    </tbody>
+                                </table>
+                                <div className="p-3 text-[10px] text-slate-400 bg-slate-50 text-center border-t border-slate-100">
+                                    * Toca cualquier fila para ver el detalle.
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* MODAL DETALLES ADMIN */}
+                        {modalDetailData && (
+                            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                                <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl flex flex-col max-h-[80vh]">
+                                    <div className="flex justify-between items-center mb-4 border-b pb-2">
+                                        <h3 className="font-bold text-slate-800">{modalDetailData.title}</h3>
+                                        <button onClick={() => setModalDetailData(null)} className="text-slate-400 hover:text-slate-600"><Icon name="X" className="w-5 h-5" /></button>
+                                    </div>
+                                    <div className="overflow-y-auto flex-1 space-y-2">
+                                        {modalDetailData.items.length === 0 ? (
+                                            <p className="text-center text-slate-400 text-sm py-4">No hay registros.</p>
+                                        ) : (
+                                            modalDetailData.items.map((item, idx) => (
+                                                <div key={idx} className="flex justify-between items-center p-2 bg-slate-50 rounded-lg text-sm">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-slate-700 font-bold truncate max-w-[150px]">{item.desc}</span>
+                                                        {/* MOSTRAR METODO SI EXISTE */}
+                                                        {item.metodo && (
+                                                            <span className={`text-[10px] uppercase font-bold 
+                                                                ${item.metodo === 'Efectivo' ? 'text-green-700' : 
+                                                                  item.metodo === 'Nequi' ? 'text-orange-500' : 
+                                                                  item.metodo === 'Daviplata' ? 'text-purple-600' : 'text-slate-400'}`}>
+                                                                {item.metodo}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <span className={`font-bold ${item.valor < 0 ? 'text-red-500' : 'text-slate-800'}`}>{formatMoney(Math.abs(item.valor))}</span>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                    {/* FOOTER TOTAL POR METODOS (SOLO PARA INGRESOS) */}
+                                    {(modalDetailData.title.includes('Ingresos') || modalDetailData.title.includes('Lavados') || modalDetailData.title.includes('Suscripciones')) && (
+                                        <div className="mt-4 pt-3 border-t grid grid-cols-3 gap-1 text-center text-[10px]">
+                                            <div className="bg-green-50 p-1 rounded text-green-800 font-bold">
+                                                Efec: {formatMoney(modalDetailData.items.filter(i => i.metodo === 'Efectivo').reduce((a,b)=>a+b.valor,0))}
+                                            </div>
+                                            <div className="bg-orange-50 p-1 rounded text-orange-600 font-bold">
+                                                Neq: {formatMoney(modalDetailData.items.filter(i => i.metodo === 'Nequi').reduce((a,b)=>a+b.valor,0))}
+                                            </div>
+                                            <div className="bg-purple-50 p-1 rounded text-purple-700 font-bold">
+                                                Davi: {formatMoney(modalDetailData.items.filter(i => i.metodo === 'Daviplata').reduce((a,b)=>a+b.valor,0))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="mt-2 pt-2 border-t text-right">
+                                        <p className="text-xs text-slate-400 uppercase">Total General</p>
+                                        <p className="text-lg font-bold text-slate-800">{formatMoney(modalDetailData.items.reduce((a, b) => a + b.valor, 0))}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            // VISTA CLIENTE (TV)
+            if (vistaActual === 'cliente') {
+                const registrosHoy = registros.filter(r => isToday(r.fechaIngreso) && !r.eliminado);
+                const listaTV = registrosHoy.filter(r => !r.pagado).sort((a,b) => new Date(a.fechaIngreso) - new Date(b.fechaIngreso)).slice(0,10);
+                return (
+                    <div className="min-h-screen bg-slate-900 text-white p-6 font-sans relative overflow-hidden">
+                        <div className="absolute inset-0 z-0 opacity-20" style={{
+                            backgroundImage: "url('https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=2070&auto=format&fit=crop')", 
+                            backgroundSize: 'cover', 
+                            backgroundPosition: 'center'
+                        }}></div>
+                        
+                        <div className="relative z-10 h-full flex flex-col">
+                            <header className="flex items-center justify-between mb-8 border-b border-slate-700 pb-6">
+                                <h1 className="text-5xl font-bold flex items-center gap-4 text-blue-400 tracking-tight">
+                                    <Icon name="Bike" className="w-16 h-16" /> Motolavado Route46
+                                </h1>
+                                <div className="text-right">
+                                    <p className="text-lg text-slate-400 uppercase font-bold tracking-widest">Hora Actual</p>
+                                    <p className="text-5xl font-mono font-bold text-white">{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                </div>
+                            </header>
+
+                            <div className="flex-1 overflow-hidden rounded-3xl border border-slate-700 shadow-2xl bg-slate-900/80 backdrop-blur-sm">
+                                <table className="w-full text-left">
+                                    <thead className="bg-slate-800/90 text-slate-200 border-b border-slate-600">
+                                        <tr>
+                                            <th className="p-5 text-xl font-bold uppercase w-24 text-center">Turno</th>
+                                            <th className="p-5 text-xl font-bold uppercase">Placa</th>
+                                            <th className="p-5 text-xl font-bold uppercase">Estado</th>
+                                            <th className="p-5 text-xl font-bold uppercase">Lavador</th>
+                                            <th className="p-5 text-xl font-bold uppercase">T. Espera</th>
+                                            <th className="p-5 text-xl font-bold uppercase">T. Servicio</th>
+                                            <th className="p-5 text-xl font-bold uppercase">Observaciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-700/50">
+                                        {listaTV.map((r) => { 
+                                            const turno = registrosHoy.findIndex(x => x.id === r.id)+1; 
+                                            return (
+                                                <tr key={r.id} className="hover:bg-slate-800/60 transition-colors">
+                                                    <td className="p-5 font-bold text-center text-slate-400 text-2xl">{turno}</td>
+                                                    <td className="p-5 font-mono text-5xl font-bold text-white tracking-wider">{r.placa}</td>
+                                                    <td className="p-5">
+                                                        <span className={`px-4 py-2 rounded-full text-lg font-bold uppercase tracking-wide ${r.terminado ? 'bg-green-500/20 text-green-400 animate-pulse border border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}`}>
+                                                            {r.terminado ? 'EN PROCESO' : 'EN ESPERA'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-5 font-medium text-slate-200 text-3xl">{r.lavador || '-'}</td>
+                                                    <td className="p-5 font-mono text-yellow-400 text-2xl">{getWaitTime(r)}</td>
+                                                    <td className="p-5 font-mono text-blue-400 text-2xl">{getServiceTime(r)}</td>
+                                                    <td className="p-5 text-lg text-slate-400 italic max-w-sm truncate">{r.observaciones}</td>
+                                                </tr>
+                                            ) 
+                                        })}
+                                    </tbody>
+                                </table>
+                                {listaTV.length === 0 && (
+                                    <div className="flex flex-col items-center justify-center h-full text-slate-500 p-20">
+                                        <Icon name="CheckCircle" className="w-24 h-24 mb-4 opacity-20" />
+                                        <p className="text-3xl font-light">No hay servicios pendientes en este momento</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="fixed bottom-8 right-8 z-50">
+                            <button onClick={() => setVistaActual('proceso')} className="p-6 bg-slate-800/90 rounded-full shadow-2xl hover:bg-slate-700 transition-all border border-slate-600 backdrop-blur hover:scale-110">
+                                <Icon name="X" className="w-8 h-8 text-white" />
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // VISTA PRINCIPAL
+            return (
+                <div className="min-h-screen bg-slate-100 p-4 relative pb-20">
+                    <div className="max-w-md mx-auto space-y-6">
+                        
+                        <header className="flex items-center justify-between bg-blue-900 text-white p-4 rounded-2xl shadow-lg">
+                            <div>
+                                <h1 className="text-xl font-bold flex items-center gap-2"><Icon name="Bike" className="w-6 h-6" /> Motolavado</h1>
+                                <div className="flex gap-3 text-xs text-blue-200 mt-1">
+                                    <span className="flex items-center gap-1"><Icon name="Clock" className="w-3 h-3"/> Espera: <b className="text-white">{resumen.enProceso}</b></span>
+                                    <span className="flex items-center gap-1"><Icon name="CheckCircle" className="w-3 h-3"/> Listas: <b className="text-white">{resumen.finalizadas}</b></span>
+                                </div>
+                            </div>
+                            <div className="text-right cursor-pointer select-none" onClick={() => setShowCaja(!showCaja)}>
+                                <p className="text-xs text-blue-300 uppercase flex items-center justify-end gap-1">Caja <Icon name={showCaja ? "EyeOff" : "Eye"} className="w-3 h-3" /></p>
+                                <p className="text-xl font-bold text-green-400">{showCaja ? formatMoney(resumen.dineroRecibido) : '****'}</p>
+                            </div>
+                        </header>
+                        
+                        {showSettings && (
+                            <div className="bg-white p-4 rounded-xl shadow-md border border-slate-200 fade-in mb-4">
+                                <h3 className="font-bold text-slate-700 mb-3">Configuración</h3>
+                                <button onClick={toggleAdminMode} className="w-full bg-slate-800 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 mb-3 hover:bg-slate-700">
+                                    <Icon name="Lock" className="w-4 h-4" /> Modo Administrador
+                                </button>
+                                <button onClick={() => setShowSettings(false)} className="w-full bg-slate-100 text-slate-500 py-2 rounded-lg text-xs font-bold mt-2">Cerrar</button>
+                            </div>
+                        )}
+                        
+                        <div className="flex justify-end mb-2">
+                            <button onClick={() => setShowSettings(!showSettings)} className="text-slate-400 hover:text-slate-600 transition-colors p-2"><Icon name="Settings" className="w-5 h-5" /></button>
+                        </div>
+                        
+                        <div className="flex p-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                            {['proceso', 'finalizados', 'resumen', 'mensualidades', 'gastos', 'cierre', 'cliente', 'equipo'].map(v => (
+                                <button key={v} onClick={() => setVistaActual(v)} className={`flex-1 min-w-[65px] py-2 text-[10px] font-bold rounded-lg transition-all flex flex-col items-center justify-center gap-1 ${vistaActual === v ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-slate-400'}`}>
+                                    <Icon name={v === 'proceso' ? 'Clock' : v === 'finalizados' ? 'RefreshCw' : v === 'resumen' ? 'ClipboardList' : v === 'mensualidades' ? 'Calendar' : v === 'gastos' ? 'Wallet' : v === 'cierre' ? 'PieChart' : v === 'cliente' ? 'Monitor' : 'Users'} className="w-4 h-4" /> 
+                                    {v === 'proceso' ? 'Lista de Espera' : v === 'finalizados' ? 'En Lavado' : v.charAt(0).toUpperCase() + v.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+
+                        {vistaActual === 'equipo' && (
+                            <div className="bg-white p-5 rounded-2xl shadow-md space-y-4 fade-in">
+                                <h2 className="text-lg font-bold flex items-center gap-2 text-slate-700"><Icon name="Users" className="w-5 h-5 text-purple-600" /> Gestionar Equipo</h2>
+                                <div className="space-y-3">
+                                    {lavadores.map((nombre, index) => { 
+                                        const cs = getWasherColorStyle(index); 
+                                        return (
+                                            <div key={index} className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${cs.bg} ${cs.text}`}>{index + 1}</div>
+                                                <input type="text" value={nombre} onChange={(e) => {const l = [...lavadores]; l[index] = e.target.value; setLavadores(l);}} className="flex-1 p-3 bg-slate-50 border rounded-xl" />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <h2 className="text-lg font-bold mt-6 mb-2 text-slate-700">Calendario de Descansos</h2>
+                                <div className="bg-white p-3 rounded-xl border border-slate-200">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <button onClick={() => { const d = new Date(calendarDate); d.setMonth(d.getMonth() - 1); setCalendarDate(d); }} className="p-2"><Icon name="ChevronLeft" className="w-4 h-4" /></button>
+                                        <span className="font-bold text-slate-700 capitalize">{calendarDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</span>
+                                        <button onClick={() => { const d = new Date(calendarDate); d.setMonth(d.getMonth() + 1); setCalendarDate(d); }} className="p-2"><Icon name="ChevronRight" className="w-4 h-4" /></button>
+                                    </div>
+                                    <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                                        {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(d => <div key={d} className="text-xs font-bold text-slate-400">{d}</div>)}
+                                    </div>
+                                    <div className="grid grid-cols-7 gap-1 text-center">
+                                        {getDaysInMonth(calendarDate).map((date, i) => { 
+                                            if (!date) return <div key={i} className="aspect-square"></div>; 
+                                            const ds = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; 
+                                            const isW = date.getDay()===0 || date.getDay()===6; 
+                                            const asg = descansos[ds]; 
+                                            const wIdx = asg ? lavadores.indexOf(asg) : -1; 
+                                            let cls = "aspect-square flex items-center justify-center rounded-lg text-xs cursor-pointer border relative "; 
+                                            if (isW) cls += "bg-gray-200 text-gray-400 cursor-not-allowed border-gray-100"; 
+                                            else if (asg && wIdx >= 0) { const cs = getWasherColorStyle(wIdx); cls += `${cs.bg} ${cs.text} border-transparent font-bold`; } 
+                                            else cls += "bg-white hover:bg-slate-50 border-slate-100 text-slate-600"; 
+                                            return (
+                                                <div key={i} onClick={() => !isW && handleDayClick(date)} className={cls}>
+                                                    {asg ? <span className="text-[10px] leading-tight">{asg.slice(0, 3)}</span> : date.getDate()}
+                                                </div>
+                                            ); 
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {vistaActual === 'gastos' && (
+                            <div className="space-y-4 fade-in">
+                                <div className="bg-white p-4 rounded-2xl shadow-md">
+                                    <h2 className="text-sm font-bold mb-3 flex items-center gap-2 text-slate-700"><Icon name="Wallet" className="w-4 h-4 text-red-600" /> Registrar Gasto</h2>
+                                    <form onSubmit={handleAddGasto} className="space-y-3">
+                                        <div><label className="text-[10px] font-bold text-slate-400">DESCRIPCIÓN</label><input type="text" value={formGasto.descripcion} onChange={(e) => setFormGasto({...formGasto, descripcion: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm" placeholder="Ej: Almuerzos, Jabón..." /></div>
+                                        <div><label className="text-[10px] font-bold text-slate-400">VALOR</label><input type="number" value={formGasto.valor} onChange={(e) => setFormGasto({...formGasto, valor: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm" placeholder="$" /></div>
+                                        <button type="submit" className="w-full bg-red-600 text-white py-3 rounded-xl shadow-md font-bold flex items-center justify-center gap-2"><Icon name="Plus" className="w-5 h-5" /> Agregar Gasto</button>
+                                    </form>
+                                </div>
+                                <div className="space-y-2">
+                                    {statsCierre.gastosHoy.map((g) => (
+                                        <div key={g.id} className="relative p-3 rounded-xl shadow-sm bg-white border-l-4 border-l-red-500 flex justify-between items-center">
+                                            <div><span className="font-bold text-slate-700 block">{g.descripcion}</span><span className="text-xs text-slate-400">{new Date(g.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+                                            <div className="flex items-center gap-3"><span className="font-bold text-red-600">{formatMoney(g.valor)}</span><button onClick={() => setConfirmarEliminarGastoId(g.id)} className="p-2 bg-slate-100 text-slate-400 rounded-full hover:bg-red-50 hover:text-red-500"><Icon name="Trash2" className="w-4 h-4" /></button></div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="bg-red-50 p-3 rounded-xl border border-red-100 text-center"><p className="text-xs text-red-500 font-bold uppercase">Total Gastos Hoy</p><p className="text-xl font-bold text-red-700">{formatMoney(statsCierre.totalGastos)}</p></div>
+                            </div>
+                        )}
+
+                        {vistaActual === 'mensualidades' && (
+                            <div className="space-y-4 fade-in">
+                                <div className="bg-white p-4 rounded-2xl shadow-md">
+                                    <h2 className="text-sm font-bold mb-3 flex items-center gap-2 text-slate-700"><Icon name="Plus" className="w-4 h-4 text-purple-600" /> Nueva Mensualidad</h2>
+                                    <form onSubmit={handleAddMensualidad} className="space-y-3">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div><label className="text-[10px] font-bold text-slate-400">NOMBRE</label><input type="text" value={formMensualidad.nombre} onChange={(e) => setFormMensualidad({...formMensualidad, nombre: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm" placeholder="Cliente" /></div>
+                                            <div><label className="text-[10px] font-bold text-slate-400">CELULAR</label><input type="number" value={formMensualidad.telefono} onChange={(e) => setFormMensualidad({...formMensualidad, telefono: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm" placeholder="300..." /></div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div><label className="text-[10px] font-bold text-slate-400">PLACA</label><input type="text" value={formMensualidad.placa} onChange={(e) => setFormMensualidad({...formMensualidad, placa: e.target.value.toUpperCase()})} className="w-full p-2 bg-slate-50 border rounded-lg font-mono font-bold uppercase text-sm" maxLength={7} placeholder="AAA-12A" /></div>
+                                            <div><label className="text-[10px] font-bold text-slate-400">MOTO (MARCA)</label><input type="text" value={formMensualidad.moto} onChange={(e) => setFormMensualidad({...formMensualidad, moto: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm" placeholder="Ej: NMAX" /></div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div><label className="text-[10px] font-bold text-slate-400">TIPO MENSUALIDAD</label><select value={formMensualidad.tipo} onChange={(e) => {const t = e.target.value; setFormMensualidad({...formMensualidad, tipo: t, valor: preciosMensualidad[t]});}} className="w-full p-2 bg-slate-50 border rounded-lg text-sm font-bold text-slate-700 focus:outline-none focus:border-purple-500"><option value="Básica">Básica</option><option value="Completa">Completa</option><option value="Full">Full</option></select></div>
+                                            <div><label className="text-[10px] font-bold text-slate-400">FECHA INICIO</label><input type="date" value={formMensualidad.fechaInicio} onChange={(e) => setFormMensualidad({...formMensualidad, fechaInicio: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm font-bold text-slate-700 focus:outline-none focus:border-purple-500"/></div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div><label className="text-[10px] font-bold text-slate-400">VALOR COBRADO</label><input type="number" value={formMensualidad.valor} onChange={(e) => setFormMensualidad({...formMensualidad, valor: Number(e.target.value)})} className="w-full p-2 bg-slate-100 border rounded-lg text-lg font-bold text-green-700 focus:outline-none focus:border-green-500"/></div>
+                                            <div><label className="text-[10px] font-bold text-slate-400">MODO DE PAGO</label><select value={formMensualidad.metodoPago} onChange={(e) => setFormMensualidad({...formMensualidad, metodoPago: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm font-bold text-slate-700 focus:outline-none focus:border-purple-500"><option value="Efectivo">Efectivo</option><option value="Nequi">Nequi</option><option value="Daviplata">Daviplata</option></select></div>
+                                        </div>
+                                        <button type="submit" className="w-full bg-purple-600 text-white py-3 rounded-xl shadow-md font-bold flex items-center justify-center gap-2"><Icon name="Plus" className="w-5 h-5" /> Agregar Suscripción</button>
+                                    </form>
+                                    <div className="relative mt-2">
+                                        <div className="absolute left-3 top-2.5 text-slate-400"><Icon name="Search" className="w-4 h-4" /></div>
+                                        <input type="text" placeholder="Buscar suscripción (Placa/Nombre)..." value={busquedaMensualidad} onChange={(e) => setBusquedaMensualidad(e.target.value)} className="w-full pl-9 pr-3 py-2 bg-white rounded-lg border text-sm" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    {mensualidades.filter(c => {
+                                        if (!c || typeof c !== 'object') return false;
+                                        const placa = (c.placa || '').toUpperCase();
+                                        const nombre = (c.nombre || '').toUpperCase();
+                                        const search = (busquedaMensualidad || '').toUpperCase();
+                                        return placa.includes(search) || nombre.includes(search);
+                                    }).map((c) => { 
+                                        const fechaFin = c.fechaFin || new Date().toISOString();
+                                        const dias = getDiasRestantes(fechaFin); 
+                                        const vencido = dias < 0; 
+                                        return (
+                                            <div key={c.id || Math.random()} className={`relative p-3 rounded-xl shadow-sm bg-white border-l-4 ${vencido ? 'border-l-red-500' : 'border-l-green-500'} flex justify-between items-center`}>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1 flex-wrap"><span className="font-mono font-bold text-lg text-slate-800">{c.placa || 'SIN PLACA'}</span><span className="text-xs font-bold text-slate-500">{c.nombre}</span><span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold uppercase">{c.tipo || 'Básica'}</span></div>
+                                                    <div className="text-[9px] text-slate-500 grid grid-cols-3 gap-1 mb-1"><span className="font-semibold text-slate-400">Creada: {formatDate(c.fechaCreacion || c.fechaInicio)}</span><span className="font-semibold text-blue-500">Inicia: {formatDate(c.fechaInicio)}</span><span className={`font-semibold ${vencido ? 'text-red-500' : 'text-green-600'}`}>Vence: {formatDate(c.fechaFin)}</span></div>
+                                                    <div className="text-[10px] text-slate-400 flex items-center gap-3 flex-wrap"><span><Icon name="Phone" className="w-3 h-3 inline"/> {c.telefono}</span><span><Icon name="Bike" className="w-3 h-3 inline"/> {c.moto}</span><span><Icon name="DollarSign" className="w-3 h-3 inline"/> {formatMoney(c.valor || 0)}</span><span><Icon name="Wallet" className="w-3 h-3 inline"/> {c.metodoPago}</span></div>
+                                                    <p className={`text-[10px] font-bold mt-1 ${vencido ? 'text-red-500' : 'text-green-600'}`}>{vencido ? `Venció hace ${Math.abs(dias)} días` : `Días restantes: ${dias}`}</p>
+                                                </div>
+                                                <div className="flex gap-2 flex-col">
+                                                    <button onClick={() => startEditMensualidad(c)} className="p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-blue-100 hover:text-blue-600" title="Editar"><Icon name="Pencil" className="w-4 h-4" /></button>
+                                                    <button onClick={() => handleRenovarMensualidad(c.id)} className="p-2 bg-slate-100 text-slate-500 rounded-full hover:text-green-600"><Icon name="RefreshCw" className="w-4 h-4" /></button>
+                                                    <button onClick={() => handleDeleteMensualidad(c.id)} className="p-2 bg-slate-100 text-slate-500 rounded-full hover:text-red-600"><Icon name="Trash2" className="w-4 h-4" /></button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {mensualidades.length === 0 && <p className="text-center text-slate-400 py-8 text-sm">No hay suscripciones registradas.</p>}
+                                    {mensualidades.length > 0 && mensualidades.filter(c => c && (c.placa || '').toUpperCase().includes((busquedaMensualidad || '').toUpperCase())).length === 0 && <p className="text-center text-slate-400 py-8 text-sm">No se encontraron coincidencias.</p>}
+                                </div>
+                            </div>
+                        )}
+
+                        {vistaActual === 'resumen' && (
+                            <div className="space-y-4 fade-in">
+                                <h2 className="text-lg font-bold text-slate-700 mb-2">Resumen del Día</h2>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    {statsLavadores.map((washer, idx) => ( 
+                                        <div key={idx} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col h-full">
+                                            <div className="flex justify-between items-center mb-2 border-b pb-2">
+                                                <h4 className="font-bold text-slate-700 text-sm">{washer.nombre}</h4>
+                                                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{washer.cantidad}</span>
+                                            </div>
+                                            <div className="flex-1 overflow-y-auto max-h-32 mb-2">
+                                                <table className="w-full text-[10px] text-left">
+                                                    <tbody>
+                                                        {washer.listaServicios.map(s => (
+                                                            <tr key={s.id} className="border-b border-slate-50 last:border-0">
+                                                                <td className="py-1 font-mono text-slate-600">{s.placa}</td>
+                                                                <td className="py-1 text-right text-slate-500 font-bold">{formatMoney(s.valor)}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div className="mt-auto bg-slate-50 p-2 rounded-lg text-[10px] space-y-1">
+                                                <div className="flex justify-between"><span>Producción:</span> <span className="font-bold text-slate-600">{formatMoney(washer.total)}</span></div>
+                                                <div className="flex justify-between text-slate-400"><span>Comisión:</span> <span>{formatMoney(washer.pagoPorcentaje)}</span></div>
+                                                <div className="flex justify-between text-slate-400"><span>Fijos (Sub):</span> <span>{formatMoney(washer.pagoFijo)}</span></div>
+                                                <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
+                                                    <span className="font-bold text-slate-700">A PAGAR:</span>
+                                                    <span className="font-bold text-green-600 text-xs">{formatMoney(washer.pago)}</span>
+                                                </div>
+                                            </div>
+                                        </div> 
+                                    ))}
+                                </div>
+                                
+                                <div className={`p-4 rounded-xl border mb-4 transition-colors ${editAdminPayment ? 'bg-white border-indigo-200 shadow-lg' : 'bg-indigo-50 border-indigo-100'}`}>
+                                    <div className="flex justify-between items-center mb-3">
+                                         <h3 className="text-sm font-bold text-indigo-700 flex items-center gap-2">
+                                            <Icon name="Briefcase" className="w-4 h-4 text-indigo-500" /> Pago Admin (Diario)
+                                         </h3>
+                                         <button 
+                                            onClick={() => { if(editAdminPayment) handleUpdateAdminPayment(); else setEditAdminPayment(true); }}
+                                            className={`p-2 rounded-full ${editAdminPayment ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-500'}`}
+                                         >
+                                            <Icon name={editAdminPayment ? "Check" : "Pencil"} className="w-4 h-4" />
+                                         </button>
+                                    </div>
+                                    <div className="flex gap-2 items-center">
+                                        <select 
+                                            disabled={!editAdminPayment}
+                                            value={pagoAdminToday.estado} 
+                                            onChange={(e) => setPagoAdminToday({...pagoAdminToday, estado: e.target.value})} 
+                                            className={`p-2 border rounded-lg text-sm font-bold w-24 ${!editAdminPayment ? 'bg-slate-100 text-slate-500 border-transparent' : 'bg-white text-slate-700'}`}
+                                        >
+                                            <option value="N/A">N/A</option>
+                                            <option value="Sí">Sí</option>
+                                            <option value="No">No</option>
+                                        </select>
+                                        <input 
+                                            disabled={!editAdminPayment}
+                                            type="number" 
+                                            value={pagoAdminToday.valor} 
+                                            onChange={(e) => setPagoAdminToday({...pagoAdminToday, valor: Number(e.target.value)})} 
+                                            className={`flex-1 p-2 border rounded-lg text-sm font-bold ${!editAdminPayment ? 'bg-slate-100 text-slate-500 border-transparent' : 'bg-white text-slate-700'}`}
+                                            placeholder="Valor"
+                                        />
+                                    </div>
+                                    {!editAdminPayment && (<div className="mt-2 flex items-center gap-1 text-green-600 text-xs font-bold"><Icon name="CheckCircle" className="w-3 h-3" /> Guardado</div>)}{editAdminPayment && (<p className="text-[10px] text-indigo-400 mt-1">* Se restará de la ganancia si marcas "Sí".</p>)}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* PESTAÑA CIERRE */}
+                        {vistaActual === 'cierre' && (
+                            <div className="space-y-6 fade-in">
+                                <div className="text-center">
+                                    <h2 className="text-2xl font-bold text-teal-800">Balance del Día</h2>
+                                    <p className="text-sm text-slate-500">{new Date().toLocaleDateString()}</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-blue-500">
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold">Venta Total</p>
+                                        <p className="text-lg font-bold text-slate-800">{formatMoney(statsCierre.totalProduccion)}</p>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-green-500">
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold">Recaudo Físico Real</p>
+                                        <p className="text-lg font-bold text-green-600">{formatMoney(statsCierre.totalRecaudo)}</p>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-red-500">
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold">Nómina Total</p>
+                                        <p className="text-lg font-bold text-red-500">{formatMoney(statsCierre.totalNomina)}</p>
+                                    </div>
+                                    <div className="bg-teal-50 p-4 rounded-xl shadow-sm border border-teal-100">
+                                        <p className="text-[10px] text-teal-600 uppercase font-bold">Ganancia Neta (Caja)</p>
+                                        <p className="text-lg font-bold text-teal-700">{formatMoney(statsCierre.gananciaDia)}</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                    <div className="bg-purple-50 p-4 rounded-xl shadow-sm border border-purple-100 flex justify-between items-center">
+                                        <div><p className="text-[10px] text-purple-600 uppercase font-bold">Suscripciones (Hoy)</p><p className="text-lg font-bold text-purple-700">{formatMoney(statsCierre.recaudoSuscripciones)}</p></div><Icon name="Calendar" className="w-6 h-6 text-purple-300" />
+                                    </div>
+                                    <div className="bg-blue-50 p-4 rounded-xl shadow-sm border border-blue-100 flex justify-between items-center">
+                                        <div><p className="text-[10px] text-blue-600 uppercase font-bold">Motos Día</p><p className="text-lg font-bold text-blue-700">{statsCierre.cantidadMotos}</p></div><Icon name="Bike" className="w-6 h-6 text-blue-300" />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                    <div className="bg-red-50 p-4 rounded-xl shadow-sm border border-red-100 flex justify-between items-center">
+                                        <div><p className="text-[10px] text-red-600 uppercase font-bold">Gastos (Hoy)</p><p className="text-lg font-bold text-red-700">{formatMoney(statsCierre.totalGastos)}</p></div><Icon name="Wallet" className="w-6 h-6 text-red-300" />
+                                    </div>
+                                    <div className="bg-indigo-50 p-4 rounded-xl shadow-sm border border-indigo-100 flex justify-between items-center">
+                                        <div><p className="text-[10px] text-indigo-600 uppercase font-bold">Pago Admin</p><p className="text-lg font-bold text-indigo-700">{formatMoney(statsCierre.pagoAdminValue)}</p></div><Icon name="Briefcase" className="w-6 h-6 text-indigo-300" />
+                                    </div>
+                                </div>
+                                <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-100"><h3 className="font-bold text-slate-700 text-sm">Dinero en Caja y Bancos</h3></div>
+                                    <div className="divide-y divide-slate-100">
+                                        {Object.entries(statsCierre.metodos).map(([metodo, valor]) => (
+                                            <div key={metodo} className="flex justify-between items-center px-4 py-3"><span className="text-sm text-slate-600 font-medium">{metodo}</span><span className="text-sm font-bold text-slate-800">{formatMoney(valor)}</span></div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-100"><h3 className="font-bold text-slate-700 text-sm">Pago a Lavadores (Hoy)</h3></div>
+                                    <div className="divide-y divide-slate-100">
+                                        {statsLavadores.map((stat, idx) => (stat.cantidad > 0 && (
+                                            <div key={idx} className="flex justify-between items-center px-4 py-3">
+                                                <div><p className="font-bold text-slate-800 text-sm">{stat.nombre}</p><p className="text-[10px] text-slate-400">Prod: {formatMoney(stat.total)}</p></div>
+                                                <div className="text-right"><span className="block text-sm font-bold text-red-500">{formatMoney(stat.pago)}</span><span className="text-[9px] text-slate-400">A PAGAR</span></div>
+                                            </div>
+                                        )))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* LISTADO DE ESPERA / EN LAVADO */}
+                        {(vistaActual === 'proceso' || vistaActual === 'finalizados') && (
+                            <div className="fade-in space-y-4">
+                                {vistaActual === 'proceso' && (
+                                    <div className="bg-white p-4 rounded-2xl shadow-md">
+                                        <h2 className="text-sm font-bold mb-3 flex items-center gap-2 text-slate-700"><Icon name="Plus" className="w-4 h-4 text-blue-600" /> Agregar a Lista de Espera</h2>
+                                        <form onSubmit={handleAdd} className="space-y-3">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div><label className="text-[10px] font-bold text-slate-400">PLACA</label><input type="text" name="placa" value={form.placa} onChange={handleChange} className="w-full p-2 bg-slate-50 border rounded-lg font-mono font-bold uppercase text-sm" maxLength={7} placeholder="AAA-12A" /></div>
+                                                <div><label className="text-[10px] font-bold text-slate-400">VALOR</label><input type="number" name="valor" value={form.valor} onChange={handleChange} className="w-full p-2 bg-slate-50 border rounded-lg font-bold text-sm" placeholder="$" /></div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3 items-center">
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-400">MÉTODO PAGO</label>
+                                                    <select name="metodo" value={form.metodo} onChange={handleChange} className="w-full p-2 bg-slate-50 border rounded-lg text-sm font-bold text-slate-700">
+                                                        <option value="DEBE">DEBE (Pendiente)</option>
+                                                        <option value="Efectivo">Efectivo</option>
+                                                        <option value="Nequi">Nequi</option>
+                                                        <option value="Daviplata">Daviplata</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="mt-2">
+                                                <input type="text" value={form.observaciones} onChange={(e) => setForm({...form, observaciones: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-xs" placeholder="Observaciones (opcional)" />
+                                            </div>
+                                            <button type="submit" className="w-full bg-blue-600 text-white py-2.5 rounded-lg shadow-md font-bold flex justify-center items-center gap-2"><Icon name="Plus" className="w-5 h-5" /> Agregar Moto</button>
+                                        </form>
+                                    </div>
+                                )}
+                                
+                                <div className="flex justify-between items-center gap-2">
+                                    <div className="relative flex-1">
+                                        <div className="absolute left-3 top-2.5 text-slate-400"><Icon name="Search" className="w-4 h-4" /></div>
+                                        <input type="text" placeholder="Buscar..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full pl-9 pr-3 py-2 bg-white rounded-lg border text-sm" />
+                                    </div>
+                                    {vistaActual === 'finalizados' && (
+                                        <div className="bg-red-50 px-3 py-2 rounded-lg border border-red-100 text-right">
+                                            <p className="text-[10px] text-red-400 font-bold uppercase">Deudores</p>
+                                            <p className="text-sm font-bold text-red-600">{formatMoney(resumen.dineroPendiente)}</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {vistaActual === 'finalizados' && <h3 className="text-xs font-bold text-slate-500 uppercase mt-2">Vehículos en Proceso</h3>}
+                                
+                                <div className="space-y-2">
+                                    {registrosFiltrados.map((reg, index) => (
+                                        <div key={reg.id} className={`relative p-2.5 rounded-lg shadow-sm bg-white flex justify-between items-center ${reg.eliminado ? 'opacity-60 grayscale bg-slate-50' : (vistaActual === 'proceso' ? 'border-l-4 border-l-blue-400' : (reg.pagado ? 'border-l-4 border-l-green-500' : 'border-l-4 border-l-red-500'))}`}>
+                                            {vistaActual === 'proceso' && !reg.eliminado && (
+                                                <div className="absolute -left-2 -top-1 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-[10px] shadow-md border border-slate-100 z-10">{registrosFiltrados.indexOf(reg) + 1}</div>
+                                            )}
+                                            <div className="flex-1 min-w-0 pr-1">
+                                                <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+                                                    <span className={`font-mono font-bold text-base ${reg.eliminado ? 'text-gray-400 line-through' : 'text-slate-800'}`}>{reg.placa}</span>
+                                                    {!reg.pagado && !reg.eliminado && (
+                                                        <button onClick={() => setModalPagoId(reg.id)} className="p-1 rounded bg-red-100 text-red-600 text-[10px] font-bold border border-red-200">NO PAGO</button>
+                                                    )}
+                                                    {reg.pagado && !reg.eliminado && (
+                                                        <button onClick={() => openEditMetodo(reg)} className={`text-[10px] px-1.5 py-0.5 rounded font-bold border uppercase ${getPaymentStyle(reg.metodo)}`}>{reg.metodo}</button>
+                                                    )}
+                                                    <button onClick={() => !reg.eliminado && openEditPrecio(reg)} className={`font-bold text-sm ${reg.eliminado ? 'text-gray-400 cursor-default' : 'text-slate-700 underline decoration-dotted ml-1'}`}>{reg.eliminado ? '$0' : formatMoney(reg.valor)}</button>
+                                                </div>
+                                                
+                                                {reg.observaciones && (
+                                                    <div className={`text-xs italic px-1 rounded mt-0.5 mb-0.5 inline-block border ${reg.eliminado ? 'text-slate-400 bg-slate-100 border-slate-200' : 'text-orange-600 bg-orange-50 border-orange-100'}`}>
+                                                        <Icon name="Pencil" className="w-3 h-3 inline mr-1" />{reg.observaciones}
+                                                    </div>
+                                                )}
+
+                                                <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                                    <span className="flex items-center gap-1"><Icon name="Clock" className="w-3 h-3" /> {vistaActual === 'proceso' ? `Hace ${getTimeAgo(reg.fecha)}` : new Date(reg.fecha).toLocaleDateString()}</span>
+                                                    {reg.lavador && <button onClick={() => !reg.eliminado && setModalLavadorId(reg.id)} className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${reg.eliminado ? 'bg-transparent text-gray-400 cursor-default' : 'bg-purple-50 text-purple-600'}`} disabled={reg.eliminado}><Icon name="User" className="w-3 h-3" /> {reg.lavador}</button>}
+                                                    {reg.eliminado && <span className="text-[9px] text-red-500 font-bold uppercase ml-2 bg-red-50 px-1 rounded">ANULADO</span>}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => !reg.eliminado && openObservacionModal(reg)} className={`p-1.5 rounded-full shadow-sm ${reg.eliminado ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-yellow-50 text-yellow-600 border border-yellow-100'}`} title="Nota"><Icon name="Pencil" className="w-5 h-5" /></button>
+                                                
+                                                {vistaActual === 'proceso' ? (
+                                                    !reg.eliminado && <button onClick={() => setModalLavadorId(reg.id)} className="bg-blue-600 text-white px-2 py-1.5 rounded-lg text-[10px] font-bold shadow-sm flex items-center gap-1 active:scale-95">Pasar a Lavado <Icon name="ArrowRightCircle" className="w-3 h-3" /></button>
+                                                ) : (
+                                                    !reg.eliminado && (
+                                                        <button onClick={() => validateAndSolicitFinish(reg)} className="bg-slate-800 text-white px-2 py-1.5 rounded-lg text-[10px] font-bold shadow-sm flex items-center gap-1 active:scale-95">Terminar <Icon name="Check" className="w-3 h-3" /></button>
+                                                    )
+                                                )}
+
+                                                {!reg.eliminado ? (
+                                                    <button type="button" onClick={() => setConfirmarAnularId(reg.id)} className="p-3 -mr-2 rounded-full text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors" title="Anular Registro"><Icon name="Trash2" className="w-5 h-5" /></button>
+                                                ) : (
+                                                    <button type="button" onClick={() => hardDeleteRegistro(reg.id)} className="p-3 -mr-2 rounded-full text-red-300 hover:text-red-600 hover:bg-red-50 transition-colors" title="Eliminar Definitivamente"><Icon name="X" className="w-5 h-5" /></button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {registrosFiltrados.length === 0 && <p className="text-center text-slate-400 text-xs py-8">No hay registros</p>}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* MODALES PRINCIPALES */}
+                    {modalEditPrecio && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col">
+                                <div className="text-center mb-4"><h3 className="text-xl font-bold text-slate-800">Editar Precio</h3></div>
+                                <input type="number" value={modalEditPrecio.valor} onChange={(e) => setModalEditPrecio({...modalEditPrecio, valor: e.target.value})} className="w-full p-3 border rounded-xl text-lg font-bold mb-4 bg-slate-50 focus:bg-white text-center" />
+                                <div className="flex gap-3">
+                                    <button onClick={() => setModalEditPrecio(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">Cancelar</button>
+                                    <button onClick={savePrecio} className="flex-1 py-3 bg-green-600 text-white font-bold text-sm rounded-xl shadow-md">Guardar</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Editar Metodo */}
+                    {modalEditMetodo && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col">
+                                <div className="text-center mb-4"><h3 className="text-xl font-bold text-slate-800">Cambiar Pago</h3></div>
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    {['Efectivo', 'Nequi', 'Daviplata'].map(m => (
+                                        <button key={m} onClick={() => saveMetodo(m)} className={`p-4 rounded-2xl border-2 font-bold uppercase hover:bg-slate-100 ${getPaymentStyle(m)}`}>{m}</button>
+                                    ))}
+                                </div>
+                                <button onClick={() => setModalEditMetodo(null)} className="w-full py-3 text-slate-400 font-bold text-sm">Cancelar</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Terminar Servicio */}
+                    {confirmarTerminarId && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col">
+                                <div className="text-center mb-6">
+                                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="Check" className="w-8 h-8 text-blue-600" /></div>
+                                    <h3 className="text-xl font-bold text-slate-800">¿Terminar Servicio?</h3>
+                                    <p className="text-slate-500 text-sm mt-2 px-2">La moto desaparecerá de la lista activa pero el dinero se mantendrá en el cierre.</p>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setConfirmarTerminarId(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">Cancelar</button>
+                                    <button onClick={confirmarTerminar} className="flex-1 py-3 bg-blue-600 text-white font-bold text-sm rounded-xl shadow-md">Sí, Terminar</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Observacion */}
+                    {modalObservacionId && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col">
+                                <div className="text-center mb-4"><h3 className="text-xl font-bold text-slate-800">Nota / Observación</h3></div>
+                                <textarea 
+                                    value={tempObservacion} 
+                                    onChange={(e) => setTempObservacion(e.target.value)} 
+                                    className="w-full p-3 border rounded-xl text-sm mb-4 h-24 resize-none bg-slate-50 focus:bg-white transition-colors"
+                                    placeholder="Escribe aquí (ej: Cuidado espejo derecho)..."
+                                ></textarea>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setModalObservacionId(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">Cancelar</button>
+                                    <button onClick={saveObservacion} className="flex-1 py-3 bg-yellow-500 text-white font-bold text-sm rounded-xl shadow-md">Guardar Nota</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Login Admin */}
+                    {showPinModal && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col">
+                                <div className="text-center mb-4"><h3 className="text-xl font-bold text-slate-800">Admin Login</h3></div>
+                                <div className="space-y-4">
+                                    <input type="password" value={pinInput} onChange={(e) => setPinInput(e.target.value)} className="w-full p-4 text-center text-2xl font-bold tracking-widest border-2 border-slate-200 rounded-xl" maxLength={4} inputMode="numeric" placeholder="PIN" />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button onClick={() => setShowPinModal(false)} className="py-3 bg-slate-100 text-slate-500 font-bold rounded-xl">Cancelar</button>
+                                        <button onClick={verifyPin} className="py-3 bg-blue-600 text-white font-bold rounded-xl shadow-md">Ingresar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Anular */}
+                    {confirmarAnularId && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col">
+                                <div className="text-center mb-6"><div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="Trash2" className="w-8 h-8 text-red-600" /></div><h3 className="text-xl font-bold text-slate-800">¿Anular Servicio?</h3><p className="text-slate-500 text-sm mt-2 px-2">El registro quedará marcado como <b>anulado</b> y su valor será $0.</p></div>
+                                <div className="flex gap-3"><button onClick={() => setConfirmarAnularId(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">Cancelar</button><button onClick={confirmarAnulacion} className="flex-1 py-3 bg-red-600 text-white font-bold text-sm rounded-xl shadow-md">Sí, Anular</button></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Eliminar Gasto */}
+                    {confirmarEliminarGastoId && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col">
+                                <div className="text-center mb-6"><div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="Trash2" className="w-8 h-8 text-red-600" /></div><h3 className="text-xl font-bold text-slate-800">¿Eliminar Gasto?</h3><p className="text-slate-500 text-sm mt-2 px-2">Se eliminará permanentemente.</p></div>
+                                <div className="flex gap-3"><button onClick={() => setConfirmarEliminarGastoId(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">Cancelar</button><button onClick={confirmarEliminacionGasto} className="flex-1 py-3 bg-red-600 text-white font-bold text-sm rounded-xl shadow-md">Sí, Eliminar</button></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Asignar Lavador */}
+                    {modalLavadorId && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col">
+                                <div className="text-center mb-6"><h3 className="text-xl font-bold text-slate-800">Asignar Lavador</h3></div>
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    {lavadores.map((name, idx) => (<button key={idx} onClick={() => confirmarFinalizacion(name)} className="p-4 rounded-2xl bg-slate-50 border-2 font-bold text-slate-600 active:scale-95">{name}</button>))}
+                                </div>
+                                <button onClick={() => setModalLavadorId(null)} className="w-full py-3 text-slate-400 font-bold text-sm">Cancelar</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Confirmar Pago (NO PAGO a Pagado) */}
+                    {modalPagoId && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col">
+                                <div className="text-center mb-6"><h3 className="text-xl font-bold text-slate-800">Confirmar Pago</h3></div>
+                                {errorMsg && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-xl text-sm font-bold text-center border border-red-200">{errorMsg}</div>}
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    {['Efectivo', 'Nequi', 'Daviplata', 'Suscripción'].map(m => { 
+                                        const r = registros.find(r => r.id === modalPagoId); 
+                                        let dis = m === 'Suscripción' ? r?.valor > 0 : r?.valor === 0; 
+                                        return (<button key={m} onClick={() => confirmarPago(m)} className={`p-4 rounded-2xl border-2 font-bold transition-all active:scale-95 ${dis ? 'bg-slate-100 text-slate-300 opacity-60' : 'bg-slate-50 text-slate-600'}`}>{m}</button>); 
+                                    })}
+                                </div>
+                                <button onClick={() => setModalPagoId(null)} className="w-full py-3 text-slate-400 font-bold text-sm">Cancelar</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Detalle Lavador */}
+                    {modalDetalleLavador && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col max-h-[80vh]">
+                                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                                    <h3 className="text-xl font-bold text-slate-800">{modalDetalleLavador}</h3>
+                                    <button onClick={() => setModalDetalleLavador(null)}><Icon name="X" className="w-6 h-6 text-slate-400" /></button>
+                                </div>
+                                <div className="overflow-y-auto flex-1 space-y-0 border-t border-b border-slate-100 py-2">
+                                    {registros.filter(r => r.terminado && r.lavador === modalDetalleLavador && !r.eliminado).map(r => { 
+                                        const sub = r.metodo === 'Suscripción' ? mensualidades.find(m => m.placa === r.placa) : null; 
+                                        return (
+                                            <div key={r.id} className="flex justify-between items-center py-2 px-1 border-b border-slate-50 last:border-0 text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono font-bold text-slate-700">{r.placa}</span>
+                                                    <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">{r.metodo} {sub ? `(${sub.tipo})` : ''}</span>
+                                                </div>
+                                                <span className="font-medium text-slate-600">{formatMoney(r.valor)}</span>
+                                            </div>
+                                        ) 
+                                    })}
+                                </div>
+                                <button onClick={() => setModalDetalleLavador(null)} className="w-full py-3 mt-2 bg-slate-800 text-white font-bold text-sm rounded-xl">Cerrar</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Calendario Descanso */}
+                    {selectedDay && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col">
+                                <div className="text-center mb-6"><h3 className="text-xl font-bold text-slate-800">Descanso</h3><p className="text-slate-500 text-sm">{selectedDay}</p></div>
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    {lavadores.map((name, idx) => { 
+                                        const cs = getWasherColorStyle(idx); 
+                                        const isSel = descansos[selectedDay] === name; 
+                                        return (<button key={idx} onClick={() => handleAssignDescanso(name)} className={`p-3 rounded-xl border-2 font-bold text-sm ${isSel ? `${cs.bg} ${cs.text}` : 'bg-white text-slate-500'}`}>{name}</button>); 
+                                    })}
+                                </div>
+                                <button onClick={() => handleAssignDescanso(null)} className="w-full py-3 text-red-500 font-bold text-sm mb-2 border border-red-100 rounded-xl">Borrar</button>
+                                <button onClick={() => setSelectedDay(null)} className="w-full py-3 text-slate-400 font-bold text-sm">Cerrar</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Editar Suscripcion */}
+                    {editMensualidad && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto">
+                                <div className="text-center mb-4"><h3 className="text-xl font-bold text-slate-800">Editar Suscripción</h3></div>
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div><label className="text-[10px] font-bold text-slate-400">NOMBRE</label><input type="text" value={editMensualidad.nombre} onChange={(e) => setEditMensualidad({...editMensualidad, nombre: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm" /></div>
+                                        <div><label className="text-[10px] font-bold text-slate-400">CELULAR</label><input type="number" value={editMensualidad.telefono} onChange={(e) => setEditMensualidad({...editMensualidad, telefono: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm" /></div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div><label className="text-[10px] font-bold text-slate-400">PLACA</label><input type="text" value={editMensualidad.placa} onChange={(e) => setEditMensualidad({...editMensualidad, placa: e.target.value.toUpperCase()})} className="w-full p-2 bg-slate-50 border rounded-lg font-mono font-bold uppercase text-sm" maxLength={7} /></div>
+                                        <div><label className="text-[10px] font-bold text-slate-400">MOTO (MARCA)</label><input type="text" value={editMensualidad.moto} onChange={(e) => setEditMensualidad({...editMensualidad, moto: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm" /></div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div><label className="text-[10px] font-bold text-slate-400">TIPO</label><select value={editMensualidad.tipo} onChange={(e) => setEditMensualidad({...editMensualidad, tipo: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm"><option value="Básica">Básica</option><option value="Completa">Completa</option><option value="Full">Full</option></select></div>
+                                        <div><label className="text-[10px] font-bold text-slate-400">INICIO</label><input type="date" value={editMensualidad.fechaInicioInput} onChange={(e) => setEditMensualidad({...editMensualidad, fechaInicioInput: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm"/></div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div><label className="text-[10px] font-bold text-slate-400">VALOR</label><input type="number" value={editMensualidad.valor} onChange={(e) => setEditMensualidad({...editMensualidad, valor: Number(e.target.value)})} className="w-full p-2 bg-slate-100 border rounded-lg text-sm"/></div>
+                                        <div><label className="text-[10px] font-bold text-slate-400">PAGO</label><select value={editMensualidad.metodoPago} onChange={(e) => setEditMensualidad({...editMensualidad, metodoPago: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-lg text-sm"><option value="Efectivo">Efectivo</option><option value="Nequi">Nequi</option><option value="Daviplata">Daviplata</option></select></div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 mt-4">
+                                    <button onClick={() => setEditMensualidad(null)} className="flex-1 py-3 text-slate-500 font-bold text-sm bg-slate-100 rounded-xl">Cancelar</button>
+                                    <button onClick={handleSaveEditMensualidad} className="flex-1 py-3 bg-purple-600 text-white font-bold text-sm rounded-xl shadow-md">Guardar</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+```
